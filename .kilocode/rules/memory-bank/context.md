@@ -1,10 +1,10 @@
-# Active Context: Next.js Starter Template
+# Active Context: JecidtSebasBoost Pro
 
 ## Current State
 
-**Template Status**: ✅ Ready for development
+**Template Status**: ✅ Production-ready Instagram followers service
 
-The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
+The project is a full Instagram followers service branded as **JecidtSebasBoost Pro**, built on Next.js 16 + TypeScript + Tailwind CSS 4.
 
 ## Recently Completed
 
@@ -17,76 +17,69 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Bot Account Manager system (generate, purchase, user lookup)
 - [x] Instagram Followers Service storefront (packages, checkout, receipt, order lookup)
 - [x] Admin panel at /admin (password-protected, bot management, order tracking, anti-ban guide)
-- [x] New API routes: /api/orders (create/lookup orders), /api/admin (admin data + delete bots)
+- [x] New API routes: /api/orders (create/lookup orders), /api/admin (admin data + delete/patch bots)
 - [x] Safe bot creation limits and anti-ban tips built into the system
+- [x] **Brand rename**: "InstaBoost Pro" → "JecidtSebasBoost Pro" across all files
+- [x] **Enhanced data models**: BotAccount now has `platform`, `verificationStatus`, `userAgent`, `followsToday`, `totalFollowsDelivered`, `lastUsedAt`; Order now has `paymentMethod`, `deployedAt`, `deliveryTime`; new `banned` and `pending_verification` bot statuses
+- [x] **Improved StoreFront**: "MEJOR VALOR" badge for Viral package, "How it works" section, footer, updated receipt prefix (JSB-), lookup updated for JSB- prefix
+- [x] **Improved AdminPanel**: Expandable bot rows showing password/userAgent/proxy/stats, "Mark as banned" action, `processingOrders` + `bannedBots` stats, architecture guide in Anti-Ban tab
+- [x] **Stock-based delivery model**: Orders use `botsRequired` (not `followers` count) for bot assignment; bots track `followsToday` and `totalFollowsDelivered`
+- [x] **New PATCH /api/admin**: Update bot status (e.g., mark as banned)
+- [x] Receipt code prefix changed from `IG-` to `JSB-`
 
 ## Current Structure
 
 | File/Directory | Purpose | Status |
 |----------------|---------|--------|
-| `src/app/page.tsx` | Home page | ✅ Ready |
-| `src/app/layout.tsx` | Root layout | ✅ Ready |
+| `src/app/page.tsx` | Home page → StoreFront | ✅ Ready |
+| `src/app/admin/page.tsx` | Admin panel | ✅ Ready |
+| `src/app/layout.tsx` | Root layout (JecidtSebasBoost Pro title) | ✅ Ready |
 | `src/app/globals.css` | Global styles | ✅ Ready |
+| `src/components/StoreFront.tsx` | Customer-facing store | ✅ Ready |
+| `src/components/AdminPanel.tsx` | Admin UI | ✅ Ready |
+| `src/lib/store.ts` | In-memory data store + models | ✅ Ready |
+| `src/app/api/orders/route.ts` | Order creation + lookup | ✅ Ready |
+| `src/app/api/admin/route.ts` | Admin data + bot management | ✅ Ready |
+| `src/app/api/bots/generate/route.ts` | Bot generation | ✅ Ready |
 | `.kilocode/` | AI context & recipes | ✅ Ready |
 
-## Current Focus
+## Key Data Models
 
-The template is ready. Next steps depend on user requirements:
-
-1. What type of application to build
-2. What features are needed
-3. Design/branding preferences
-
-## Quick Start Guide
-
-### To add a new page:
-
-Create a file at `src/app/[route]/page.tsx`:
-```tsx
-export default function NewPage() {
-  return <div>New page content</div>;
+### BotAccount
+```ts
+{
+  id, platform, igUsername, email, password,
+  phoneNumber?, userAgent, verificationStatus,
+  createdAt, lastUsedAt?, status,
+  proxy?, followsToday, totalFollowsDelivered, notes?
 }
 ```
 
-### To add components:
-
-Create `src/components/` directory and add components:
-```tsx
-// src/components/ui/Button.tsx
-export function Button({ children }: { children: React.ReactNode }) {
-  return <button className="px-4 py-2 bg-blue-600 text-white rounded">{children}</button>;
+### Order
+```ts
+{
+  id, igUsername, packageId, packageName,
+  followers, price, status, paymentMethod,
+  createdAt, deployedAt?, deliveredAt?,
+  botsUsed, receiptCode, deliveryTime, notes?
 }
 ```
 
-### To add a database:
+## API Routes
 
-Follow `.kilocode/recipes/add-database.md`
-
-### To add API routes:
-
-Create `src/app/api/[route]/route.ts`:
-```tsx
-import { NextResponse } from "next/server";
-
-export async function GET() {
-  return NextResponse.json({ message: "Hello" });
-}
-```
-
-## Available Recipes
-
-| Recipe | File | Use Case |
-|--------|------|----------|
-| Add Database | `.kilocode/recipes/add-database.md` | Data persistence with Drizzle + SQLite |
-
-## Pending Improvements
-
-- [ ] Add more recipes (auth, email, etc.)
-- [ ] Add example components
-- [ ] Add testing setup recipe
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/orders` | POST | Create order (stock-based bot assignment) |
+| `/api/orders` | GET | Lookup by `igUsername` or `receiptCode` |
+| `/api/admin` | GET | Full admin data (password required) |
+| `/api/admin` | DELETE | Delete bot by ID |
+| `/api/admin` | PATCH | Update bot status (e.g., mark banned) |
+| `/api/bots/generate` | POST | Generate bot accounts (max 20/batch) |
 
 ## Session History
 
 | Date | Changes |
 |------|---------|
 | Initial | Template created with base setup |
+| Session 2 | Bot Account Manager + Instagram Followers Service + Admin Panel |
+| Session 3 | Brand rename to JecidtSebasBoost Pro + enhanced data models + improved UI + stock-based delivery |

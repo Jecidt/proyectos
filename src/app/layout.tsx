@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bot Account Manager",
-  description: "Generador y distribuidor de cuentas bot",
+  title: "JecidtSebasBoost Pro — Seguidores para Instagram",
+  description: "Consigue más seguidores en Instagram de forma rápida y segura. JecidtSebasBoost Pro.",
 };
 
 export default function RootLayout({

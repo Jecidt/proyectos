@@ -78,7 +78,7 @@ export default function StoreFront() {
     setLookupOrders(null);
     setLookupLoading(true);
     try {
-      const isReceipt = lookupInput.trim().startsWith("IG-");
+      const isReceipt = lookupInput.trim().startsWith("JSB-");
       const url = isReceipt
         ? `/api/orders?receiptCode=${encodeURIComponent(lookupInput.trim())}`
         : `/api/orders?igUsername=${encodeURIComponent(lookupInput.trim())}`;
@@ -87,7 +87,6 @@ export default function StoreFront() {
       if (!res.ok) {
         setLookupError(data.error || "No encontrado");
       } else if (isReceipt) {
-        // Single order lookup
         setLookupOrders({
           igUsername: data.order.igUsername,
           totalOrders: 1,
@@ -108,6 +107,7 @@ export default function StoreFront() {
     const map: Record<string, { label: string; cls: string }> = {
       pending: { label: "⏳ Pendiente", cls: "bg-yellow-900/40 text-yellow-300 border-yellow-700" },
       processing: { label: "⚙️ Procesando", cls: "bg-blue-900/40 text-blue-300 border-blue-700" },
+      deployed: { label: "🚀 Desplegado", cls: "bg-indigo-900/40 text-indigo-300 border-indigo-700" },
       delivered: { label: "✅ Entregado", cls: "bg-green-900/40 text-green-300 border-green-700" },
       failed: { label: "❌ Fallido", cls: "bg-red-900/40 text-red-300 border-red-700" },
     };
@@ -130,7 +130,7 @@ export default function StoreFront() {
             </div>
             <div>
               <h1 className="text-lg font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-                InstaBoost Pro
+                JecidtSebasBoost Pro
               </h1>
               <p className="text-xs text-neutral-500">Seguidores reales para Instagram</p>
             </div>
@@ -154,7 +154,7 @@ export default function StoreFront() {
             {/* Hero */}
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 bg-purple-900/30 border border-purple-700/50 rounded-full px-4 py-1.5 text-sm text-purple-300 mb-6">
-                ⚡ Entrega rápida y segura
+                ⚡ Entrega rápida · Sistema de stock automático
               </div>
               <h2 className="text-4xl sm:text-5xl font-extrabold mb-4 leading-tight">
                 Consigue más{" "}
@@ -175,15 +175,21 @@ export default function StoreFront() {
                 <div
                   key={pkg.id}
                   className={`relative bg-neutral-900 border rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-xl ${
-                    pkg.id === "pkg_500"
+                    pkg.badge === "MÁS POPULAR"
                       ? "border-purple-500 shadow-lg shadow-purple-500/20"
+                      : pkg.badge === "MEJOR VALOR"
+                      ? "border-pink-500 shadow-lg shadow-pink-500/20"
                       : "border-neutral-800 hover:border-purple-700/50"
                   }`}
                   onClick={() => handleSelectPackage(pkg.id)}
                 >
-                  {pkg.id === "pkg_500" && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
-                      ⭐ MÁS POPULAR
+                  {pkg.badge && (
+                    <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-3 py-1 rounded-full shadow whitespace-nowrap ${
+                      pkg.badge === "MÁS POPULAR"
+                        ? "bg-gradient-to-r from-pink-500 to-purple-600"
+                        : "bg-gradient-to-r from-orange-500 to-pink-600"
+                    }`}>
+                      ⭐ {pkg.badge}
                     </div>
                   )}
                   <div className="text-3xl font-extrabold text-white mb-1">
@@ -199,8 +205,10 @@ export default function StoreFront() {
                   </div>
                   <p className="text-xs text-neutral-500 mb-5">{pkg.description}</p>
                   <button className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                    pkg.id === "pkg_500"
+                    pkg.badge === "MÁS POPULAR"
                       ? "bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/30"
+                      : pkg.badge === "MEJOR VALOR"
+                      ? "bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-400 hover:to-pink-500 text-white shadow-lg shadow-pink-500/30"
                       : "bg-neutral-800 hover:bg-neutral-700 text-white"
                   }`}>
                     Comprar ahora →
@@ -210,11 +218,11 @@ export default function StoreFront() {
             </div>
 
             {/* Trust badges */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center mb-10">
               {[
                 { icon: "🔒", label: "100% Seguro", sub: "Sin contraseña" },
-                { icon: "⚡", label: "Entrega Rápida", sub: "En horas" },
-                { icon: "🌟", label: "Alta Calidad", sub: "Cuentas reales" },
+                { icon: "⚡", label: "Entrega Rápida", sub: "Sistema de stock" },
+                { icon: "🌟", label: "Alta Calidad", sub: "Cuentas verificadas" },
                 { icon: "💬", label: "Soporte 24/7", sub: "Siempre disponible" },
               ].map((b) => (
                 <div key={b.label} className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
@@ -223,6 +231,26 @@ export default function StoreFront() {
                   <div className="text-xs text-neutral-500">{b.sub}</div>
                 </div>
               ))}
+            </div>
+
+            {/* How it works */}
+            <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6">
+              <h3 className="text-lg font-bold text-center mb-6">¿Cómo funciona?</h3>
+              <div className="grid sm:grid-cols-3 gap-6">
+                {[
+                  { step: "1", icon: "📦", title: "Elige tu paquete", desc: "Selecciona la cantidad de seguidores que deseas" },
+                  { step: "2", icon: "📝", title: "Ingresa tu usuario", desc: "Solo necesitamos tu @usuario de Instagram, sin contraseña" },
+                  { step: "3", icon: "🚀", title: "Recibe seguidores", desc: "Nuestro sistema entrega los seguidores automáticamente" },
+                ].map((item) => (
+                  <div key={item.step} className="text-center">
+                    <div className="w-12 h-12 bg-purple-900/40 border border-purple-700/50 rounded-full flex items-center justify-center text-2xl mx-auto mb-3">
+                      {item.icon}
+                    </div>
+                    <h4 className="font-semibold mb-1">{item.title}</h4>
+                    <p className="text-xs text-neutral-500">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -340,7 +368,7 @@ export default function StoreFront() {
               <div className="bg-gradient-to-r from-pink-900/40 to-purple-900/40 border-b border-neutral-800 p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-neutral-500 mb-1">RECIBO DE COMPRA</p>
+                    <p className="text-xs text-neutral-500 mb-1">RECIBO — JECIDTSEBASBOOST PRO</p>
                     <p className="font-mono text-sm font-bold text-purple-300">{order.receiptCode}</p>
                   </div>
                   <div className="text-right">
@@ -440,7 +468,7 @@ export default function StoreFront() {
                 onChange={(e) => setLookupInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && lookupInput.trim() && handleLookup()}
                 className="flex-1 bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                placeholder="@usuario o código IG-XXXX-XXXX"
+                placeholder="@usuario o código JSB-XXXX-XXXX"
                 autoFocus
               />
               <button
@@ -498,8 +526,13 @@ export default function StoreFront() {
                         <span className="font-bold text-purple-400">${o.price.toFixed(2)} USD</span>
                       </div>
                       {o.deliveredAt && (
-                        <p className="text-xs text-green-400 mt-1">
-                          ✅ Entregado: {new Date(o.deliveredAt).toLocaleDateString("es-ES")}
+                        <p className="text-xs text-green-400 mt-2">
+                          ✅ Entregado: {new Date(o.deliveredAt).toLocaleDateString("es-ES", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
                       )}
                     </div>
@@ -512,9 +545,20 @@ export default function StoreFront() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 mt-16 py-8 text-center text-xs text-neutral-600">
-        <p>© 2024 InstaBoost Pro · Servicio de seguidores para Instagram</p>
-        <p className="mt-1">Entrega garantizada · Soporte 24/7</p>
+      <footer className="border-t border-white/5 mt-16 py-8">
+        <div className="max-w-5xl mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-sm">
+              📸
+            </div>
+            <span className="font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
+              JecidtSebasBoost Pro
+            </span>
+          </div>
+          <p className="text-xs text-neutral-600">
+            © 2024 JecidtSebasBoost Pro · Servicio de seguidores para Instagram
+          </p>
+        </div>
       </footer>
     </div>
   );
