@@ -179,11 +179,11 @@ export function getBotStats() {
   const db = getDb();
   const row = db.prepare(`
     SELECT
-      COUNT(*) as total,
-      SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
-      SUM(CASE WHEN status = 'deployed' THEN 1 ELSE 0 END) as deployed,
-      SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END) as banned,
-      SUM(CASE WHEN status = 'pending_verification' THEN 1 ELSE 0 END) as pending_verification
+      COALESCE(COUNT(*), 0) as total,
+      COALESCE(SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END), 0) as available,
+      COALESCE(SUM(CASE WHEN status = 'deployed' THEN 1 ELSE 0 END), 0) as deployed,
+      COALESCE(SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END), 0) as banned,
+      COALESCE(SUM(CASE WHEN status = 'pending_verification' THEN 1 ELSE 0 END), 0) as pending_verification
     FROM bot_accounts
   `).get() as { total: number; available: number; deployed: number; banned: number; pending_verification: number };
   return row;
@@ -293,12 +293,12 @@ export function getOrderStats() {
   const db = getDb();
   const row = db.prepare(`
     SELECT
-      COUNT(*) as total,
-      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-      SUM(CASE WHEN status IN ('processing', 'deployed') THEN 1 ELSE 0 END) as processing,
-      SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
-      SUM(CASE WHEN status = 'delivered' THEN price ELSE 0 END) as revenue,
-      SUM(CASE WHEN status = 'delivered' THEN followers ELSE 0 END) as total_followers
+      COALESCE(COUNT(*), 0) as total,
+      COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) as pending,
+      COALESCE(SUM(CASE WHEN status IN ('processing', 'deployed') THEN 1 ELSE 0 END), 0) as processing,
+      COALESCE(SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END), 0) as delivered,
+      COALESCE(SUM(CASE WHEN status = 'delivered' THEN price ELSE 0 END), 0) as revenue,
+      COALESCE(SUM(CASE WHEN status = 'delivered' THEN followers ELSE 0 END), 0) as total_followers
     FROM orders
   `).get() as {
     total: number;

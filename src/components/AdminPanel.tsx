@@ -411,7 +411,7 @@ export default function AdminPanel() {
                 },
                 {
                   label: "Ingresos",
-                  value: `$${data.stats.totalRevenue.toFixed(2)}`,
+                  value: `${(data.stats.totalRevenue || 0).toFixed(2)}`,
                   icon: "💰",
                   color: "text-yellow-400",
                 },
@@ -487,7 +487,7 @@ export default function AdminPanel() {
                   <div className="flex justify-between">
                     <span className="text-neutral-400">Ingresos totales</span>
                     <span className="font-bold text-green-400">
-                      ${data.stats.totalRevenue.toFixed(2)}
+                      ${(data.stats.totalRevenue || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -826,7 +826,7 @@ export default function AdminPanel() {
             <div>
               <h2 className="text-xl font-bold">Pedidos de Clientes</h2>
               <p className="text-neutral-400 text-sm">
-                {data.stats.totalOrders} pedidos · ${data.stats.totalRevenue.toFixed(2)} USD en
+                {data.stats.totalOrders} pedidos · ${(data.stats.totalRevenue || 0).toFixed(2)} USD en
                 ingresos · {data.stats.totalFollowersDelivered.toLocaleString()} seguidores
                 entregados
               </p>
