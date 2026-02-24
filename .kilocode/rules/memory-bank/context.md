@@ -15,6 +15,10 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Memory bank documentation
 - [x] Recipe system for common features
 - [x] Bot Account Manager system (generate, purchase, user lookup)
+- [x] Instagram Followers Service storefront (packages, checkout, receipt, order lookup)
+- [x] Admin panel at /admin (password-protected, bot management, order tracking, anti-ban guide)
+- [x] New API routes: /api/orders (create/lookup orders), /api/admin (admin data + delete bots)
+- [x] Safe bot creation limits and anti-ban tips built into the system
 
 ## Current Structure
 

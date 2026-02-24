@@ -1,5 +1,5 @@
-import BotManager from "@/components/BotManager";
+import StoreFront from "@/components/StoreFront";
 
 export default function Home() {
-  return <BotManager />;
+  return <StoreFront />;
 }
