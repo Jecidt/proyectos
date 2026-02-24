@@ -26,6 +26,12 @@ The project is a full Instagram followers service branded as **JecidtSebasBoost 
 - [x] **Stock-based delivery model**: Orders use `botsRequired` (not `followers` count) for bot assignment; bots track `followsToday` and `totalFollowsDelivered`
 - [x] **New PATCH /api/admin**: Update bot status (e.g., mark as banned)
 - [x] Receipt code prefix changed from `IG-` to `JSB-`
+- [x] **Real Instagram automation**: Puppeteer-based bot registration (`registerInstagramAccount`) and following (`followInstagramUser`, `batchFollowUser`) in `src/lib/instagram.ts`
+- [x] **SQLite persistence**: `better-sqlite3` database at `data/jecidtsebasboost.db` via `src/lib/db.ts` — survives server restarts
+- [x] **Background job queue**: `src/lib/jobQueue.ts` processes follow orders asynchronously, resumes on restart via `src/instrumentation.ts`
+- [x] **Real registration toggle**: Admin panel has toggle for "Registro Real" (Puppeteer) vs "Modo Simulado" (instant, for testing)
+- [x] **Queue status in admin**: Dashboard and Orders tab show live queue status (jobs in progress, target usernames)
+- [x] **Bot notes & IG User ID**: Bots now store `igUserId` (from Instagram cookies) and `notes` (registration errors)
 
 ## Current Structure
 

@@ -3,8 +3,12 @@
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { resumePendingJobs } = await import("./lib/jobQueue");
-    resumePendingJobs();
-    console.log("[Instrumentation] JecidtSebasBoost Pro server started — job queue initialized");
+    try {
+      const { resumePendingJobs } = await import("./lib/jobQueue");
+      resumePendingJobs();
+      console.log("[Instrumentation] JecidtSebasBoost Pro server started — job queue initialized");
+    } catch (err) {
+      console.error("[Instrumentation] Failed to initialize job queue:", err);
+    }
   }
 }
