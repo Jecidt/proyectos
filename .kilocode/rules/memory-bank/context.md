@@ -32,6 +32,8 @@ The project is a full Instagram followers service branded as **JecidtSebasBoost 
 - [x] **Real registration toggle**: Admin panel has toggle for "Registro Real" (Puppeteer) vs "Modo Simulado" (instant, for testing)
 - [x] **Queue status in admin**: Dashboard and Orders tab show live queue status (jobs in progress, target usernames)
 - [x] **Bot notes & IG User ID**: Bots now store `igUserId` (from Instagram cookies) and `notes` (registration errors)
+- [x] **Admin test functionality**: New `/api/test` endpoint + "Prueba Gratis" tab in admin panel for testing Instagram automation without creating orders
+- [x] **Fixed null value errors**: Admin panel now handles null stats gracefully, preventing crashes when database is empty
 
 ## Current Structure
 
@@ -81,6 +83,7 @@ The project is a full Instagram followers service branded as **JecidtSebasBoost 
 | `/api/admin` | DELETE | Delete bot by ID |
 | `/api/admin` | PATCH | Update bot status (e.g., mark banned) |
 | `/api/bots/generate` | POST | Generate bot accounts (max 20/batch) |
+| `/api/test` | POST | Test Instagram automation (register account, follow user) |
 
 ## Session History
 
