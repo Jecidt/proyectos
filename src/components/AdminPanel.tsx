@@ -69,7 +69,7 @@ interface AdminData {
   queueStatus?: QueueStatus;
 }
 
-type AdminTab = "dashboard" | "bots" | "orders" | "tips";
+type AdminTab = "dashboard" | "bots" | "orders" | "tips" | "test";
 
 export default function AdminPanel() {
   const [password, setPassword] = useState("");
@@ -78,6 +78,7 @@ export default function AdminPanel() {
   const [data, setData] = useState<AdminData | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [expandedBot, setExpandedBot] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<any>(null);
 
   // Generate bots state
   const [genQty, setGenQty] = useState("5");
@@ -113,6 +114,68 @@ export default function AdminPanel() {
     setAuthError("");
     const ok = await fetchData(password);
     if (ok) setAuthenticated(true);
+  };
+
+  const testRegister = async () => {
+    const testUsername = (document.getElementById("testUsername") as HTMLInputElement).value;
+    const testEmail = (document.getElementById("testEmail") as HTMLInputElement).value;
+    const testPassword = (document.getElementById("testPassword") as HTMLInputElement).value;
+
+    if (!testUsername || !testEmail || !testPassword) {
+      setTestResult({ success: false, error: "Por favor completa todos los campos" });
+      return;
+    }
+
+    setTestResult({ success: true, message: "Iniciando registro...", action: "register" });
+    
+    try {
+      const res = await fetch("/api/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "test_register",
+          testUsername,
+          email: testEmail,
+          testPassword,
+          password: password
+        })
+      });
+      const result = await res.json();
+      setTestResult(result);
+    } catch (error) {
+      setTestResult({ success: false, error: error instanceof Error ? error.message : "Error desconocido" });
+    }
+  };
+
+  const testFollow = async () => {
+    const botUsername = (document.getElementById("botUsername") as HTMLInputElement).value;
+    const botPassword = (document.getElementById("botPassword") as HTMLInputElement).value;
+    const targetUsername = (document.getElementById("targetUsername") as HTMLInputElement).value;
+
+    if (!botUsername || !botPassword || !targetUsername) {
+      setTestResult({ success: false, error: "Por favor completa todos los campos" });
+      return;
+    }
+
+    setTestResult({ success: true, message: "Iniciando follow...", action: "follow" });
+    
+    try {
+      const res = await fetch("/api/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "test_follow",
+          testUsername: botUsername,
+          testPassword: botPassword,
+          targetUsername,
+          password: password
+        })
+      });
+      const result = await res.json();
+      setTestResult(result);
+    } catch (error) {
+      setTestResult({ success: false, error: error instanceof Error ? error.message : "Error desconocido" });
+    }
   };
 
   const handleGenerate = async () => {
@@ -358,6 +421,9 @@ export default function AdminPanel() {
           </button>
           <button className={tabClass("tips")} onClick={() => setActiveTab("tips")}>
             🛡️ Guía Anti-Ban
+          </button>
+          <button className={tabClass("test")} onClick={() => setActiveTab("test")}>
+            🧪 Prueba Gratis
           </button>
         </div>
 
@@ -1025,6 +1091,92 @@ export default function AdminPanel() {
                   •{" "}
                   <span className="text-white">Pasarela de pago:</span> Stripe o Coinbase Commerce
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TEST TAB */}
+        {activeTab === "test" && (
+          <div className="space-y-6 max-w-3xl">
+            <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-6">
+              <h2 className="text-2xl font-bold text-yellow-400 mb-4">🧪 Prueba Gratis - Test Instagram Automation</h2>
+              <p className="text-gray-300 mb-4">
+                Usa esta sección para probar que la automatización de Instagram funciona correctamente 
+                antes de lanzar el servicio a clientes.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="bg-gray-800 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-3">1️⃣ Probar Registro de Cuenta</h3>
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Usuario de prueba (será creado)"
+                      className="w-full p-2 bg-gray-700 text-white rounded"
+                      id="testUsername"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email para la cuenta"
+                      className="w-full p-2 bg-gray-700 text-white rounded"
+                      id="testEmail"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Contraseña para la cuenta"
+                      className="w-full p-2 bg-gray-700 text-white rounded"
+                      id="testPassword"
+                    />
+                    <button
+                      onClick={testRegister}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition"
+                    >
+                      🚀 Crear Cuenta en Instagram
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-gray-800 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-3">2️⃣ Probar Seguir Usuario</h3>
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Usuario del bot (cuenta creada)"
+                      className="w-full p-2 bg-gray-700 text-white rounded"
+                      id="botUsername"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Contraseña del bot"
+                      className="w-full p-2 bg-gray-700 text-white rounded"
+                      id="botPassword"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Usuario objetivo a seguir (sin @)"
+                      className="w-full p-2 bg-gray-700 text-white rounded"
+                      id="targetUsername"
+                    />
+                    <button
+                      onClick={testFollow}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition"
+                    >
+                      👤 Hacer que el Bot Siga a Usuario
+                    </button>
+                  </div>
+                </div>
+
+                {testResult && (
+                  <div className={`p-4 rounded-lg ${testResult.success ? 'bg-green-900/50 border border-green-600' : 'bg-red-900/50 border border-red-600'}`}>
+                    <h4 className={`font-bold ${testResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                      {testResult.success ? '✅ ÉXITO' : '❌ ERROR'}
+                    </h4>
+                    <pre className="text-sm text-gray-300 mt-2 overflow-x-auto">
+                      {JSON.stringify(testResult, null, 2)}
+                    </pre>
+                  </div>
+                )}
               </div>
             </div>
           </div>
