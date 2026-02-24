@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { store, PACKAGES, generateReceiptCode } from "@/lib/store";
+import { v4 as uuidv4 } from "uuid";
+import {
+  insertOrder,
+  getOrderByReceiptCode,
+  getOrdersByUsername,
+  getAvailableBots,
+  updateBotStatus,
+  DbOrder,
+} from "@/lib/db";
+import { enqueueFollowOrder } from "@/lib/jobQueue";
+import { PACKAGES } from "@/lib/store";
 
-// POST /api/orders - Create a new order (purchase followers)
+function generateReceiptCode(): string {
+  const prefix = "JSB";
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${prefix}-${timestamp}-${random}`;
+}
+
+// POST /api/orders - Create a new order and trigger real Instagram follows
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -14,19 +31,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Clean IG username (remove @ if present)
     const cleanUsername = igUsername.trim().replace(/^@/, "");
 
     const pkg = PACKAGES.find((p) => p.id === packageId);
     if (!pkg) {
-      return NextResponse.json(
-        { error: "Paquete no válido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Paquete no válido" }, { status: 400 });
     }
 
-    // Check available bots (use botsRequired, not followers count)
-    const availableBots = store.botAccounts.filter((b) => b.status === "available");
+    // Check available bots in persistent DB
+    const availableBots = getAvailableBots();
     if (availableBots.length < pkg.botsRequired) {
       return NextResponse.json(
         {
@@ -36,69 +49,57 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Assign bots to this order (stock-based model)
+    // Assign bots to this order
     const botsToUse = availableBots.slice(0, pkg.botsRequired);
     const botIds = botsToUse.map((b) => b.id);
 
-    // Mark bots as deployed and update their stats
+    // Mark bots as deployed in DB
     for (const bot of botsToUse) {
-      bot.status = "deployed";
-      bot.lastUsedAt = new Date().toISOString();
+      updateBotStatus(bot.id, "deployed");
     }
 
-    // Create order
+    // Create order in DB
     const receiptCode = generateReceiptCode();
-    const order = {
-      id: `ord_${Date.now().toString(36)}`,
-      igUsername: cleanUsername,
-      packageId: pkg.id,
-      packageName: pkg.name,
+    const orderId = `ord_${uuidv4().replace(/-/g, "").slice(0, 12)}`;
+
+    const order: DbOrder = {
+      id: orderId,
+      ig_username: cleanUsername,
+      package_id: pkg.id,
+      package_name: pkg.name,
       followers: pkg.followers,
       price: pkg.price,
-      status: "processing" as const,
-      paymentMethod: "demo" as const,
-      createdAt: new Date().toISOString(),
-      botsUsed: botIds,
-      receiptCode,
-      deliveryTime: pkg.deliveryTime,
+      status: "processing",
+      payment_method: "demo",
+      created_at: new Date().toISOString(),
+      deployed_at: null,
+      delivered_at: null,
+      receipt_code: receiptCode,
+      delivery_time: pkg.deliveryTime,
+      notes: null,
     };
 
-    store.orders.push(order);
+    insertOrder(order, botIds);
 
-    // Simulate delivery after a short time (in real app this would be a background job / Celery task)
-    // Stock model: bots are pre-generated, delivery is near-instant
-    setTimeout(() => {
-      const o = store.orders.find((x) => x.id === order.id);
-      if (o) {
-        o.status = "delivered";
-        o.deliveredAt = new Date().toISOString();
-        // Update bot stats
-        for (const botId of botIds) {
-          const bot = store.botAccounts.find((b) => b.id === botId);
-          if (bot) {
-            const followsPerBot = Math.ceil(pkg.followers / pkg.botsRequired);
-            bot.followsToday += followsPerBot;
-            bot.totalFollowsDelivered += followsPerBot;
-          }
-        }
-      }
-    }, 5000);
+    // Enqueue real Instagram follow job (runs in background)
+    enqueueFollowOrder(orderId, cleanUsername, botIds);
 
     return NextResponse.json({
       success: true,
       order: {
-        id: order.id,
-        igUsername: order.igUsername,
-        packageName: order.packageName,
-        followers: order.followers,
-        price: order.price,
-        status: order.status,
-        createdAt: order.createdAt,
-        receiptCode: order.receiptCode,
-        deliveryTime: order.deliveryTime,
+        id: orderId,
+        igUsername: cleanUsername,
+        packageName: pkg.name,
+        followers: pkg.followers,
+        price: pkg.price,
+        status: "processing",
+        createdAt: order.created_at,
+        receiptCode,
+        deliveryTime: pkg.deliveryTime,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[Orders] Error creating order:", err);
     return NextResponse.json(
       { error: "Error al procesar el pedido" },
       { status: 500 }
@@ -113,18 +114,34 @@ export async function GET(req: NextRequest) {
   const receiptCode = searchParams.get("receiptCode");
 
   if (receiptCode) {
-    const order = store.orders.find((o) => o.receiptCode === receiptCode);
+    const order = getOrderByReceiptCode(receiptCode);
     if (!order) {
       return NextResponse.json({ error: "Recibo no encontrado" }, { status: 404 });
     }
-    return NextResponse.json({ order });
+    return NextResponse.json({
+      order: {
+        id: order.id,
+        igUsername: order.ig_username,
+        packageName: order.package_name,
+        followers: order.followers,
+        price: order.price,
+        status: order.status,
+        createdAt: order.created_at,
+        deliveredAt: order.delivered_at,
+        receiptCode: order.receipt_code,
+        deliveryTime: order.delivery_time,
+      },
+    });
   }
 
   if (igUsername) {
     const cleanUsername = igUsername.trim().replace(/^@/, "");
-    const orders = store.orders.filter((o) => o.igUsername === cleanUsername);
+    const orders = getOrdersByUsername(cleanUsername);
     if (orders.length === 0) {
-      return NextResponse.json({ error: "No se encontraron pedidos para este usuario" }, { status: 404 });
+      return NextResponse.json(
+        { error: "No se encontraron pedidos para este usuario" },
+        { status: 404 }
+      );
     }
     return NextResponse.json({
       igUsername: cleanUsername,
@@ -132,17 +149,20 @@ export async function GET(req: NextRequest) {
       totalFollowersPurchased: orders.reduce((sum, o) => sum + o.followers, 0),
       orders: orders.map((o) => ({
         id: o.id,
-        packageName: o.packageName,
+        packageName: o.package_name,
         followers: o.followers,
         price: o.price,
         status: o.status,
-        createdAt: o.createdAt,
-        deliveredAt: o.deliveredAt,
-        receiptCode: o.receiptCode,
-        deliveryTime: o.deliveryTime,
+        createdAt: o.created_at,
+        deliveredAt: o.delivered_at,
+        receiptCode: o.receipt_code,
+        deliveryTime: o.delivery_time,
       })),
     });
   }
 
-  return NextResponse.json({ error: "Se requiere igUsername o receiptCode" }, { status: 400 });
+  return NextResponse.json(
+    { error: "Se requiere igUsername o receiptCode" },
+    { status: 400 }
+  );
 }

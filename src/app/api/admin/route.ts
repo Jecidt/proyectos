@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { store, getStats, SAFE_BOT_LIMITS } from "@/lib/store";
+import {
+  getAllBots,
+  getAllOrders,
+  getOrderBotIds,
+  getBotStats,
+  getOrderStats,
+  deleteBot,
+  updateBotStatus,
+} from "@/lib/db";
+import { SAFE_BOT_LIMITS } from "@/lib/store";
+import { getQueueStatus } from "@/lib/jobQueue";
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
-// GET /api/admin - Get full admin data
+// GET /api/admin - Get full admin data from persistent DB
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const password = searchParams.get("password");
@@ -12,41 +22,64 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 401 });
   }
 
-  const stats = getStats();
+  const botStats = getBotStats();
+  const orderStats = getOrderStats();
+  const bots = getAllBots();
+  const orders = getAllOrders();
+  const queueStatus = getQueueStatus();
+
+  const stats = {
+    totalBots: botStats.total,
+    availableBots: botStats.available,
+    deployedBots: botStats.deployed,
+    bannedBots: botStats.banned,
+    totalOrders: orderStats.total,
+    pendingOrders: orderStats.pending,
+    processingOrders: orderStats.processing,
+    deliveredOrders: orderStats.delivered,
+    totalRevenue: orderStats.revenue,
+    totalFollowersDelivered: orderStats.total_followers,
+  };
 
   return NextResponse.json({
     stats,
     safeLimits: SAFE_BOT_LIMITS,
-    bots: store.botAccounts.map((b) => ({
+    queueStatus,
+    bots: bots.map((b) => ({
       id: b.id,
       platform: b.platform,
-      igUsername: b.igUsername,
+      igUsername: b.ig_username,
       email: b.email,
       password: b.password,
-      verificationStatus: b.verificationStatus,
+      verificationStatus: b.verification_status,
       status: b.status,
-      createdAt: b.createdAt,
-      lastUsedAt: b.lastUsedAt,
+      createdAt: b.created_at,
+      lastUsedAt: b.last_used_at,
       proxy: b.proxy,
-      followsToday: b.followsToday,
-      totalFollowsDelivered: b.totalFollowsDelivered,
-      userAgent: b.userAgent,
+      followsToday: b.follows_today,
+      totalFollowsDelivered: b.total_follows_delivered,
+      userAgent: b.user_agent,
+      igUserId: b.ig_user_id,
+      notes: b.notes,
     })),
-    orders: store.orders.map((o) => ({
-      id: o.id,
-      igUsername: o.igUsername,
-      packageName: o.packageName,
-      followers: o.followers,
-      price: o.price,
-      status: o.status,
-      paymentMethod: o.paymentMethod,
-      createdAt: o.createdAt,
-      deployedAt: o.deployedAt,
-      deliveredAt: o.deliveredAt,
-      receiptCode: o.receiptCode,
-      deliveryTime: o.deliveryTime,
-      botsUsed: o.botsUsed.length,
-    })),
+    orders: orders.map((o) => {
+      const botIds = getOrderBotIds(o.id);
+      return {
+        id: o.id,
+        igUsername: o.ig_username,
+        packageName: o.package_name,
+        followers: o.followers,
+        price: o.price,
+        status: o.status,
+        paymentMethod: o.payment_method,
+        createdAt: o.created_at,
+        deployedAt: o.deployed_at,
+        deliveredAt: o.delivered_at,
+        receiptCode: o.receipt_code,
+        deliveryTime: o.delivery_time,
+        botsUsed: botIds.length,
+      };
+    }),
   });
 }
 
@@ -59,16 +92,31 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 401 });
   }
 
-  const idx = store.botAccounts.findIndex((b) => b.id === botId);
-  if (idx === -1) {
+  try {
+    deleteBot(botId);
+    const botStats = getBotStats();
+    const orderStats = getOrderStats();
+    return NextResponse.json({
+      success: true,
+      stats: {
+        totalBots: botStats.total,
+        availableBots: botStats.available,
+        deployedBots: botStats.deployed,
+        bannedBots: botStats.banned,
+        totalOrders: orderStats.total,
+        pendingOrders: orderStats.pending,
+        processingOrders: orderStats.processing,
+        deliveredOrders: orderStats.delivered,
+        totalRevenue: orderStats.revenue,
+        totalFollowersDelivered: orderStats.total_followers,
+      },
+    });
+  } catch {
     return NextResponse.json({ error: "Bot no encontrado" }, { status: 404 });
   }
-
-  store.botAccounts.splice(idx, 1);
-  return NextResponse.json({ success: true, stats: getStats() });
 }
 
-// PATCH /api/admin - Update bot status (e.g., mark as banned)
+// PATCH /api/admin - Update bot status
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { password, botId, status } = body;
@@ -77,14 +125,24 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 401 });
   }
 
-  const bot = store.botAccounts.find((b) => b.id === botId);
-  if (!bot) {
+  const validStatuses = ["available", "deployed", "banned", "pending_verification"];
+  if (!status || !validStatuses.includes(status)) {
+    return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
+  }
+
+  try {
+    updateBotStatus(botId, status);
+    const botStats = getBotStats();
+    return NextResponse.json({
+      success: true,
+      stats: {
+        totalBots: botStats.total,
+        availableBots: botStats.available,
+        deployedBots: botStats.deployed,
+        bannedBots: botStats.banned,
+      },
+    });
+  } catch {
     return NextResponse.json({ error: "Bot no encontrado" }, { status: 404 });
   }
-
-  if (status && ["available", "deployed", "banned", "pending_verification"].includes(status)) {
-    bot.status = status;
-  }
-
-  return NextResponse.json({ success: true, bot, stats: getStats() });
 }
